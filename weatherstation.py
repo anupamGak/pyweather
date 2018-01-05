@@ -59,7 +59,7 @@ class WeatherStation:
 		}
 
 		self.uploader = requests.get("https://weatherstation.wunderground.com/weatherstation/updateweatherstation.php", params=self.payload)
-		print self.uploader.text
+#		print self.uploader.text
 
 	def save_data(self):
 		self.data = [self.data_time, self.wind_speed, self.wind_dir, self.temp]
@@ -67,6 +67,9 @@ class WeatherStation:
 		with open('data2.csv', 'ab') as self.datafile:
 			self.datawriter = csv.writer(self.datafile)
 			self.datawriter.writerow(self.data)
+
+	def display(self):
+		print self.data_time, " || ", self.temp, " || ", self.wind_speed
 
 
 station = WeatherStation()
@@ -78,8 +81,8 @@ while True:
 	station.get_data()
 
 	tick = tick + 1
-	print "Tick ", tick, " ",
 	
 	station.upload_data()
+	station.display()
 
 	time.sleep(60 - (time.time() - starttime))
