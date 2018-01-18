@@ -2,9 +2,10 @@ import requests
 from lxml import html
 import csv
 import time
+import argparse
 
 class WeatherStation:
-	def __init__(self):
+	def __init__(self, filename):
 		self.wind_speed = 0
 		self.wind_dir = 0
 		self.wind_gust = 0
@@ -15,15 +16,19 @@ class WeatherStation:
 		self.payload = {}
 		self.data_time = 0
 
+		self.net_address = "http://192.168.137.99/livedata.htm"
+
 		self.datafile = 0
 		self.datawriter = 0
+		self.file_time = time.localtime()
+		self.filename = filename
 
 		self.uploader = 0
 
-		self.response = requests.get("http://192.168.137.99/livedata.htm")
+	def get_data(self):
+		self.response = requests.get(self.net_address)
 		self.tree = html.fromstring(self.response.text)
 
-	def get_data(self):
 		self.node = self.tree.xpath("//input[@name='CurrTime']")[0]
 		self.data_time = self.node.get("value")
 
@@ -64,7 +69,7 @@ class WeatherStation:
 	def save_data(self):
 		self.data = [self.data_time, self.wind_speed, self.wind_dir, self.temp]
 
-		with open('data2.csv', 'ab') as self.datafile:
+		with open(self.filename + ".csv", 'ab') as self.datafile:
 			self.datawriter = csv.writer(self.datafile)
 			self.datawriter.writerow(self.data)
 
@@ -72,10 +77,20 @@ class WeatherStation:
 		print self.data_time, " || ", self.temp, " || ", self.wind_speed
 
 
-station = WeatherStation()
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-d", "--duration", help="Duration of data collection in min", type=int)
+parser.add_argument("-f", "--filename", help="File name for the resulting csv data file")
+args = parser.parse_args()
+
+if not args.filename:
+	file_time = time.localtime()
+	args.filename = 'winddata_(%d-%d-%d).csv' % (file_time.tm_year, file_time.tm_mon, file_time.tm_mday)
+
+station = WeatherStation(args.filename)
 tick = 0
 
-while True:
+while tick < args.duration:
 	starttime = time.time()
 
 	station.get_data()
@@ -84,5 +99,8 @@ while True:
 	
 	station.upload_data()
 	station.display()
+	station.save_data()
 
 	time.sleep(60 - (time.time() - starttime))
+
+#	'winddata_(%d-%d-%d).csv' % (self.file_time.tm_year, self.file_time.tm_mon, self.file_time.tm_mday)
